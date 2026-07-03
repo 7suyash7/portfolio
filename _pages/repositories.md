@@ -2,14 +2,16 @@
 layout: page
 permalink: /repositories/
 title: repositories
-description: A quick view of my GitHub profile and selected repositories.
+description: GitHub profile, contribution stats, and selected repositories.
 nav: true
 nav_order: 4
 ---
 
 {% if site.data.repositories.github_users %}
 
-## GitHub users
+Most of my public work lives on [github.com/7suyash7](https://github.com/7suyash7): protocol/client contributions, Rust systems projects, benchmarking tools, and now the AI/ML infrastructure exercises I am building in public.
+
+## GitHub profile
 
 <div class="repositories d-flex flex-wrap flex-md-row flex-column justify-content-between align-items-center">
   {% for user in site.data.repositories.github_users %}
@@ -37,7 +39,7 @@ nav_order: 4
 
 {% if site.data.repositories.github_repos %}
 
-## GitHub Repositories
+## Selected repositories
 
 <div class="repositories d-flex flex-wrap flex-md-row flex-column justify-content-between align-items-center">
   {% for repo in site.data.repositories.github_repos %}
