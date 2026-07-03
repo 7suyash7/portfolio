@@ -9,7 +9,7 @@ nav_order: 4
 
 {% if site.data.repositories.github_users %}
 
-Most of my public work lives on [github.com/7suyash7](https://github.com/7suyash7): protocol/client contributions, Rust systems projects, benchmarking tools, and now the AI/ML infrastructure exercises I am building in public.
+Most of my public work lives on [github.com/7suyash7](https://github.com/7suyash7).
 
 ## GitHub profile
 
