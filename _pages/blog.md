@@ -1,9 +1,10 @@
 ---
 layout: default
 permalink: /blog/
-title: blog
+title: writing
+description: Technical essays and build notes, mostly hosted on Medium for now.
 nav: true
-nav_order: 1
+nav_order: 2
 pagination:
   enabled: true
   collection: posts
@@ -27,6 +28,11 @@ pagination:
     <h1>{{ site.blog_name }}</h1>
     <h2>{{ site.blog_description }}</h2>
   </div>
+  <p>
+    Longer-form posts currently live on
+    <a href="https://medium.com/@suyashnyn1" target="_blank" rel="external nofollow noopener">Medium</a>.
+    I use this section as the index: the public proof from crypto/protocol work first, and then new notes as I build toward AI inference and ML systems.
+  </p>
   {% endif %}
 
 {% if site.display_tags and site.display_tags.size > 0 or site.display_categories and site.display_categories.size > 0 %}

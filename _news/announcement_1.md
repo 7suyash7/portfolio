@@ -5,4 +5,4 @@ inline: true
 related_posts: false
 ---
 
-A simple inline announcement.
+Repositioning this portfolio around systems engineering for AI inference and ML infrastructure, while keeping the Ethereum/protocol work as the proof base.
