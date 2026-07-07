@@ -1,0 +1,59 @@
+---
+# Only the main Sass file needs front matter.
+---
+@charset "utf-8";
+
+@use "sass:math";
+@use "sass:string";
+
+@use "variables" with (
+  $max-content-width: {{ site.max_width | default: "930px" }}
+);
+
+@use "themes";
+@use "layout";
+@use "typography";
+@use "navbar";
+@use "footer";
+@use "blog";
+@use "publications";
+@use "components";
+@use "utilities";
+@use "tabs";
+@use "teachings";
+@use "typograms";
+
+:root,
+html[data-theme="light"] {
+  --global-bg-color: #fff7ed;
+  --global-code-bg-color: rgba(249, 115, 22, 0.08);
+  --global-text-color: #1f2937;
+  --global-text-color-light: #6b7280;
+  --global-theme-color: #f97316;
+  --global-hover-color: #c2410c;
+  --global-hover-text-color: #ffffff;
+  --global-footer-bg-color: #292524;
+  --global-footer-text-color: #fed7aa;
+  --global-footer-link-color: #ffffff;
+  --global-distill-app-color: #78716c;
+  --global-divider-color: rgba(194, 65, 12, 0.18);
+  --global-card-bg-color: #fffaf5;
+  --global-highlight-color: #c2410c;
+  --global-back-to-top-bg-color: rgba(194, 65, 12, 0.72);
+  --global-back-to-top-text-color: #ffffff;
+  --global-newsletter-bg-color: #fffaf5;
+  --global-newsletter-text-color: #1f2937;
+
+  --global-tip-block: #16a34a;
+  --global-tip-block-bg: #ecfdf5;
+  --global-tip-block-text: #14532d;
+  --global-tip-block-title: #15803d;
+  --global-warning-block: #f59e0b;
+  --global-warning-block-bg: #fffbeb;
+  --global-warning-block-text: #78350f;
+  --global-warning-block-title: #b45309;
+  --global-danger-block: #dc2626;
+  --global-danger-block-bg: #fef2f2;
+  --global-danger-block-text: #7f1d1d;
+  --global-danger-block-title: #b91c1c;
+}
