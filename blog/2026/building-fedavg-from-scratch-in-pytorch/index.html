@@ -1,0 +1,237 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Building FedAvg From Scratch in PyTorch | Suyash Nayan </title> <meta name="author" content="Suyash Nayan"> <meta name="description" content="A learning note from implementing Federated Averaging in PyTorch, with client-local training, sample-weighted aggregation, and IID vs non-IID data splits."> <meta name="keywords" content="suyash nayan, systems engineer, protocol engineer, rust, go, ethereum, ai inference, ml systems, mev, p2p networking"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/portfolio/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/portfolio/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;S&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/portfolio/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://7suyash7.github.io/portfolio/blog/2026/building-fedavg-from-scratch-in-pytorch/"> <script src="/portfolio/assets/js/theme.js?v=7af685e2ba20b37fef545c97b8064050"></script> <link defer rel="stylesheet" href="/portfolio/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/portfolio/"> <span class="font-weight-bold">Suyash</span> Nayan </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/portfolio/">about </a> </li> <li class="nav-item active"> <a class="nav-link" href="/portfolio/blog/">writing </a> </li> <li class="nav-item "> <a class="nav-link" href="/portfolio/projects/">projects </a> </li> <li class="nav-item "> <a class="nav-link" href="/portfolio/repositories/">repositories </a> </li> <li class="nav-item "> <a class="nav-link" href="/portfolio/cv/">CV </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Building FedAvg From Scratch in PyTorch</h1> <p class="post-meta"> Created on July 16, 2026 </p> <p class="post-tags"> <a href="/portfolio/blog/2026"> <i class="fa-solid fa-calendar fa-sm"></i> 2026 </a>   ·   <a href="/portfolio/blog/tag/federated-learning"> <i class="fa-solid fa-hashtag fa-sm"></i> federated-learning</a>   <a href="/portfolio/blog/tag/pytorch"> <i class="fa-solid fa-hashtag fa-sm"></i> pytorch</a>   <a href="/portfolio/blog/tag/fedavg"> <i class="fa-solid fa-hashtag fa-sm"></i> fedavg</a>   <a href="/portfolio/blog/tag/distributed-training"> <i class="fa-solid fa-hashtag fa-sm"></i> distributed-training</a>   <a href="/portfolio/blog/tag/ai-systems"> <i class="fa-solid fa-hashtag fa-sm"></i> ai-systems</a>   ·   <a href="/portfolio/blog/category/learning-notes"> <i class="fa-solid fa-tag fa-sm"></i> learning-notes</a> </p> </header> <article class="post-content"> <div id="markdown-content"> <p>I recently built a small Federated Averaging implementation from scratch in PyTorch. The goal was not to chase benchmark performance, but to understand what actually happens inside FedAvg: how the server initializes a model, how clients train locally, how their weights are averaged, and how IID vs non-IID client data affects learning.</p> <p>The setup was intentionally simple. I used a tiny synthetic classification dataset and a two-layer MLP classifier. The model takes an input feature vector, passes it through a hidden layer with a ReLU activation, and outputs raw logits for each class. I deliberately kept the model small because the interesting part of this project was not the architecture. The interesting part was the training system around it.</p> <p>The basic pipeline looked like this:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Build synthetic dataset
+-&gt; split into train/test
+-&gt; partition train data across clients
+-&gt; initialize global model
+-&gt; select clients each round
+-&gt; train selected clients locally
+-&gt; aggregate client models with sample-weighted averaging
+-&gt; evaluate global model
+</code></pre></div></div> <p>The most important thing I learned is that FedAvg is not conceptually complicated, but it is very easy to implement incorrectly in subtle ways.</p> <p>In normal centralized training, there is one model and one dataset. You shuffle the data into batches, compute loss, backpropagate, and update the model. In FedAvg, every selected client gets a copy of the same global model, trains that copy on its own local data, and sends the updated weights back to the server. The server then creates a new global model by averaging those client weights.</p> <p>So instead of thinking:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>one model trains on all data
+</code></pre></div></div> <p>FedAvg is more like:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>many client models start from the same global weights
+each trains locally
+the server averages their final parameters
+</code></pre></div></div> <p>That distinction mattered a lot. One bug I had to avoid was accidentally training multiple clients on the same model object. That would make client updates sequential instead of independent, which breaks the whole “train locally, then average” structure. Each client needs a fresh model loaded with the same global state at the start of the round.</p> <p>Another thing I paid attention to was how model state is copied. PyTorch <code class="language-plaintext highlighter-rouge">state_dict</code>s are dictionaries of tensors, but blindly passing them around can create shared references. For FedAvg, the server needs safe snapshots of model parameters. That means cloning and detaching tensors so later optimizer updates do not mutate a state that was supposed to be frozen.</p> <h2 id="sample-weighted-aggregation">Sample-Weighted Aggregation</h2> <p>The aggregation step was a useful systems lesson. FedAvg does not simply average clients equally unless every client has the same amount of data. The correct update is sample-weighted:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>new_global = sum((client_samples / total_samples) * client_state)
+</code></pre></div></div> <p>This means a client with 100 examples should influence the new global model more than a client with 10 examples. Implementing this forced me to treat a model not as one object, but as a collection of named tensors: <code class="language-plaintext highlighter-rouge">fc1.weight</code>, <code class="language-plaintext highlighter-rouge">fc1.bias</code>, <code class="language-plaintext highlighter-rouge">fc2.weight</code>, and <code class="language-plaintext highlighter-rouge">fc2.bias</code>. Aggregation is just tensor math applied key-by-key across matching state dictionaries.</p> <h2 id="iid-vs-non-iid-clients">IID vs Non-IID Clients</h2> <p>The IID vs non-IID data split was probably the most interesting part. In the IID case, each client gets a roughly representative slice of the global dataset. In the non-IID case, I sorted examples by label, split them into shards, and assigned only a few shards to each client. That creates label-skewed clients where each client may only see a small part of the label space.</p> <p>This helped make the main FedAvg problem more concrete. With IID data, clients usually produce updates that point in somewhat compatible directions. With non-IID data, one client might mostly learn class 0, another might mostly learn class 1, and another might mostly learn class 2. When the server averages these models, the result can be noisier or worse than the IID case. This is the client drift problem: local training can pull each client model toward its own biased data distribution.</p> <p>I also experimented with two important knobs:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>local_epochs: how much each client trains before aggregation
+client_fraction: what fraction of clients participate each round
+</code></pre></div></div> <p>Increasing local epochs means each client does more work per communication round. This can reduce the number of server rounds needed, but it can also make client drift worse, especially when the data is non-IID. Increasing the client fraction means the server averages more client updates per round, which usually gives a more representative global update, but costs more communication.</p> <h2 id="details-that-mattered">Details That Mattered</h2> <p>The biggest implementation details I had to get right were:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Use one shared permutation when shuffling features and labels.
+Never apply softmax before cross-entropy loss.
+Reset gradients before each optimizer step.
+Clone and detach model state before storing it.
+Load the same global state into every selected client.
+Aggregate client states with sample-count weighting.
+Use fixed seeds so experiments are reproducible.
+</code></pre></div></div> <p>The softmax point was a good reminder. The model returns raw logits, and <code class="language-plaintext highlighter-rouge">CrossEntropyLoss</code> handles the softmax/log-softmax internally. Adding softmax manually would double-normalize the outputs and damage the gradients.</p> <p>The seed handling was also more important than I expected. For controlled experiments, I used the same seed across runs when comparing client fractions or local epoch counts. That way, the only thing changing was the variable being tested. Otherwise, randomness in initialization, client selection, or batch ordering could make the comparison noisy.</p> <h2 id="what-clicked">What Clicked</h2> <p>Overall, this project helped me see FedAvg as a simple but powerful distributed training pattern:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>broadcast weights
+train locally
+average weights
+repeat
+</code></pre></div></div> <p>The hard part is not the high-level idea. The hard part is preserving the right invariants: clients must start from the same global model, data-label pairs must stay aligned, state dictionaries must not accidentally share storage, and aggregation must respect how much data each client trained on.</p> <p>This was a good from-scratch project because it made federated learning feel less abstract. FedAvg is basically ordinary SGD running on many local datasets, plus careful parameter averaging on the server. Once I implemented the pieces myself, the tradeoffs around IID vs non-IID data, local epochs, client sampling, and communication cost became much easier to reason about.</p> </div> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Suyash Nayan. Built with <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> and <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/portfolio/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/portfolio/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/portfolio/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/portfolio/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/portfolio/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/portfolio/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/portfolio/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/portfolio/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/portfolio/assets/al_img_tools/js/zoom.js"></script> <script defer src="/portfolio/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/portfolio/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/portfolio/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/portfolio/";
+    },
+  },{id: "nav-writing",
+          title: "writing",
+          description: "Technical essays and build notes, mostly hosted on Medium for now.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/portfolio/blog/";
+          },
+        },{id: "nav-projects",
+          title: "projects",
+          description: "Systems projects from Ethereum infrastructure, DeFi simulation, benchmarking, and the AI/ML infra transition.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/portfolio/projects/";
+          },
+        },{id: "nav-repositories",
+          title: "repositories",
+          description: "GitHub profile, contribution stats, and selected repositories.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/portfolio/repositories/";
+          },
+        },{id: "nav-cv",
+          title: "CV",
+          description: "Protocol and systems engineering experience, with a current focus on AI inference and ML infrastructure roles.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/portfolio/cv/";
+          },
+        },{id: "post-building-fedavg-from-scratch-in-pytorch",
+        
+          title: "Building FedAvg From Scratch in PyTorch",
+        
+        description: "A learning note from implementing Federated Averaging in PyTorch, with client-local training, sample-weighted aggregation, and IID vs non-IID data splits.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/portfolio/blog/2026/building-fedavg-from-scratch-in-pytorch/";
+          
+        },
+      },{id: "post-lora-fine-tuning-a-tiny-chat-model-with-unsloth",
+        
+          title: "LoRA Fine-Tuning a Tiny Chat Model with Unsloth",
+        
+        description: "A learning note from an end-to-end LoRA fine-tuning exercise with Unsloth, TRL, PEFT, and a 4-bit Qwen2.5-0.5B chat model.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/portfolio/blog/2026/lora-fine-tuning-a-tiny-chat-model-with-unsloth/";
+          
+        },
+      },{id: "post-building-a-multi-protocol-arbitrage-bot",
+        
+          title: 'Building a Multi-Protocol Arbitrage Bot <svg width="1.2rem" height="1.2rem" top=".5rem" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+        
+        description: "A technical deep dive into ArbRs, a Rust engine for Uniswap, Curve, Balancer-style AMM math, graph search, and net-profit-aware arbitrage modeling.",
+        section: "Posts",
+        handler: () => {
+          
+            window.open("https://medium.com/@suyashnyn1/building-a-multi-protocol-arbitrage-bot-c8af44f2bfb9", "_blank");
+          
+        },
+      },{id: "post-observing-ethereum-39-s-mempool-directly-with-reth",
+        
+          title: 'Observing Ethereum&#39;s Mempool Directly with Reth <svg width="1.2rem" height="1.2rem" top=".5rem" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+        
+        description: "A Rust/Reth deep dive on building a standalone Ethereum P2P mempool monitor without relying on a full node or external RPC abstraction.",
+        section: "Posts",
+        handler: () => {
+          
+            window.open("https://medium.com/@suyashnyn1/observing-ethereums-mempool-directly-with-reth-d404919cae79", "_blank");
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/portfolio/books/the_godfather/";
+            },},{id: "news-repositioning-this-portfolio-around-systems-engineering-for-ai-inference-and-ml-infrastructure-while-keeping-the-ethereum-protocol-work-as-the-proof-base",
+          title: 'Repositioning this portfolio around systems engineering for AI inference and ML infrastructure, while...',
+          description: "",
+          section: "News",},{id: "news-building-rust-based-protocol-tools-mempool-ingestion-systems-amm-simulators-and-now-ai-ml-infrastructure-exercises",
+          title: 'Building Rust-based protocol tools, mempool ingestion systems, AMM simulators, and now AI/ML infrastructure...',
+          description: "",
+          section: "News",},{id: "news-current-focus",
+          title: 'Current focus',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/portfolio/news/announcement_2/";
+            },},{id: "projects-arbrs",
+          title: 'ArbRs',
+          description: "Rust multi-protocol arbitrage engine with local Uniswap V3 and Curve simulation.",
+          section: "Projects",handler: () => {
+              window.location.href = "/portfolio/projects/1_arbrs/";
+            },},{id: "projects-reth-p2p-mempool-crawler",
+          title: 'Reth P2P Mempool Crawler',
+          description: "Ethereum mainnet P2P ingestion pipeline using Reth components, Tokio, PostgreSQL, and WebSockets.",
+          section: "Projects",handler: () => {
+              window.location.href = "/portfolio/projects/2_reth_mempool_crawler/";
+            },},{id: "projects-hyperledger-besu-latency-optimization",
+          title: 'Hyperledger Besu Latency Optimization',
+          description: "LFX Mentorship work reducing private-network transaction latency by 61%.",
+          section: "Projects",handler: () => {
+              window.location.href = "/portfolio/projects/3_besu_latency/";
+            },},{id: "projects-ai-ml-systems-exercises",
+          title: 'AI/ML Systems Exercises',
+          description: "Practical learning projects around inference, evaluation, observability, and model-serving infrastructure.",
+          section: "Projects",handler: () => {
+              window.location.href = "/portfolio/projects/4_ai_ml_systems_exercises/";
+            },},{id: "projects-flowmark",
+          title: 'FlowMark',
+          description: "Go-based blockchain load-testing tool and second-place Flow hackathon project.",
+          section: "Projects",handler: () => {
+              window.location.href = "/portfolio/projects/5_flowmark/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/portfolio/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/portfolio/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/portfolio/assets/pdf/suyash-nayan-resume.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%73%75%79%61%73%68%6E%79%6E%31@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/7suyash7", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/suyashnayan", "_blank");
+        },
+      },{
+        id: 'social-telegram',
+        title: 'telegram',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://telegram.me/suash9", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/portfolio/assets/al_search/js/shortcut-key.js"></script> </body> </html>
